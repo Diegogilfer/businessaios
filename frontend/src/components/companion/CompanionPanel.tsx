@@ -92,26 +92,40 @@ export default function CompanionPanel({ currentTab }: { currentTab: string }) {
       const execM = t.match(/^(?:ejecuta|analiza|crea|run|execute)\s+(.+)/i)
       if (execM) {
         const title = execM[1]
-        push('assistant', `Creando tarea: "${title}"... trabajando con los agentes.`)
-        const task = await createTask({
-          title, description: title, category: 'general', priority: 1,
-        }) as { id: string }
-        const res = await executeTask(task.id, true) as Record<string, unknown>
-        const txt  = String(res.final_result ?? res.result ?? 'Completado')
-        push('assistant', `✓ Completado en ${res.execution_time_seconds ?? '?'}s\n\n${txt.slice(0, 600)}${txt.length > 600 ? '…' : ''}`)
+        push('assistant', `Creando tarea: "${title}"...\nTrabajando con los agentes.`)
+        try {
+          const task = await createTask({
+            title, description: title, category: 'general', priority: 1,
+          }) as { id: string }
+          const res = await executeTask(task.id, true) as Record<string, unknown>
+          const txt  = String(res.final_result ?? res.result ?? 'Completado')
+          push('assistant', `✓ Completado en ${res.execution_time_seconds ?? '?'}s\n\n${txt.slice(0, 500)}${txt.length > 500 ? '…' : ''}`)
+        } catch (e) {
+          push('assistant', `Error ejecutando la tarea. ${e instanceof Error ? e.message : 'Verifica el backend.'}`)
+        }
       } else {
         // Regular chat with companion agent
         let cid = convId
         if (!cid) {
-          const conv = await createConversation(agent, 'Companion') as Record<string, unknown>
-          cid = conv.conversation_id as string
-          setConvId(cid)
+          try {
+            const conv = await createConversation(agent, 'Companion') as Record<string, unknown>
+            cid = conv.conversation_id as string
+            setConvId(cid)
+          } catch (e) {
+            push('assistant', `No pude iniciar la conversación. ${e instanceof Error ? e.message : 'Backend no disponible.'}`)
+            setLoading(false)
+            return
+          }
         }
-        const rep = await sendChatMessage(cid, agent, t) as Record<string, unknown>
-        push('assistant', rep.response as string)
+        try {
+          const rep = await sendChatMessage(cid, agent, t) as Record<string, unknown>
+          push('assistant', rep.response as string)
+        } catch (e) {
+          push('assistant', `${e instanceof Error ? e.message : 'Error al responder. Verifica que el backend esté activo.'}`)
+        }
       }
-    } catch {
-      push('assistant', 'Error al responder. Verifica que el backend esté activo.')
+    } catch (e) {
+      push('assistant', `Error inesperado. ${e instanceof Error ? e.message : 'Intenta de nuevo.'}`)
     }
     setLoading(false)
   }
@@ -174,30 +188,18 @@ export default function CompanionPanel({ currentTab }: { currentTab: string }) {
           animation: 'fadeUp 0.2s ease',
         }}>
 
-          {/* Header */}
+          {/* Header — minimalist */}
           <div style={{
-            padding: '13px 16px',
+            padding: '11px 14px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
-            background: `${theme.color}06`,
             display: 'flex', alignItems: 'center',
             justifyContent: 'space-between',
             flexShrink: 0,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                background: `${theme.color}14`,
-                border: `1px solid ${theme.color}28`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 15, color: theme.color,
-              }}>
-                {theme.icon}
-              </div>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', lineHeight: 1 }}>{theme.name}</div>
-                <div style={{ fontSize: 9, color: theme.color, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 2 }}>
-                  {theme.role}
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 14, color: theme.color }}>{theme.icon}</span>
+              <div style={{ fontSize: 11, fontWeight: 600, color: theme.color, lineHeight: 1.2 }}>
+                Tu especialista en<br /><span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-2)' }}>{theme.role}</span>
               </div>
             </div>
             <button
@@ -205,12 +207,12 @@ export default function CompanionPanel({ currentTab }: { currentTab: string }) {
               title="Cambiar agente"
               style={{
                 background: 'transparent', border: 'none', cursor: 'pointer',
-                fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: 'inherit',
-                letterSpacing: '0.06em', padding: '3px 6px',
-                transition: 'color 0.15s',
+                fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'inherit',
+                letterSpacing: '0.05em', padding: '2px 4px',
+                transition: 'color 0.15s', textTransform: 'uppercase',
               }}
               onMouseEnter={e => ((e.target as HTMLElement).style.color = theme.color)}
-              onMouseLeave={e => ((e.target as HTMLElement).style.color = 'rgba(255,255,255,0.25)')}
+              onMouseLeave={e => ((e.target as HTMLElement).style.color = 'rgba(255,255,255,0.2)')}
             >
               cambiar
             </button>

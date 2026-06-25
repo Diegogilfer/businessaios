@@ -114,51 +114,72 @@ function Overview({ setTab }: { setTab: (t: Tab) => void }) {
 
   return (
     <div className="animate-fade-in">
-      {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 44 }}>
+      {/* KPI cards — more visual */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 48 }}>
         <KpiCard label="Health Score"  value={hd?.health_score} suffix="%" accent="var(--primary)" sub="Sistema operativo" />
         <KpiCard label="Completadas"   value={ed?.completed}    accent="var(--violet)"              sub={`de ${ed?.total_executions ?? 0} totales`} />
         <KpiCard label="Quality Score" value={ed?.avg_quality}  decimals={2} accent="var(--blue)"   sub="promedio 7 días" />
         <KpiCard label="Conocimiento"  value={kd?.total_entries} accent="var(--amber)"              sub={`+${kd?.new_this_week ?? 0} esta semana`} />
       </div>
 
-      {/* Quick actions */}
-      <div style={{ marginBottom: 44 }}>
-        <p style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 600, marginBottom: 18 }}>
+      {/* Quick actions — urban vibe */}
+      <div style={{ marginBottom: 48 }}>
+        <p style={{ fontSize: 9, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 700, marginBottom: 20 }}>
           Acciones rápidas
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {QUICK_ACTIONS.map(a => (
             <div
               key={a.tab}
               style={{
-                background: 'var(--glass-bg)', border: '1px solid var(--glass-border)',
-                borderRadius: 10, padding: '22px 20px',
+                background: 'var(--glass-bg)',
+                border: `1.5px solid rgba(255,255,255,0.08)`,
+                borderRadius: 12, padding: '24px 22px',
                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                minHeight: 190, transition: 'border-color 0.2s, background 0.2s',
+                minHeight: 200,
+                transition: 'border-color 0.25s cubic-bezier(0.4,0,0.2,1), background 0.25s, transform 0.25s',
+                cursor: 'pointer', position: 'relative', overflow: 'hidden',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = `${theme.color}35`; (e.currentTarget as HTMLElement).style.background = `${theme.color}04` }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--glass-border)'; (e.currentTarget as HTMLElement).style.background = 'var(--glass-bg)' }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = `${theme.color}50`
+                ;(e.currentTarget as HTMLElement).style.background = `${theme.color}06`
+                ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'
+                ;(e.currentTarget as HTMLElement).style.background = 'var(--glass-bg)'
+                ;(e.currentTarget as HTMLElement).style.transform = 'none'
+              }}
             >
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 8, letterSpacing: '-0.01em' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 10, letterSpacing: '-0.02em' }}>
                   {a.label}
                 </div>
-                <p style={{ fontSize: 11, color: 'var(--text-2)', lineHeight: 1.65 }}>{a.sub}</p>
+                <p style={{ fontSize: 11.5, color: 'var(--text-2)', lineHeight: 1.7 }}>{a.sub}</p>
               </div>
               <Tooltip text={`Ir a ${a.label}`} position="bottom">
                 <button
                   onClick={() => setTab(a.tab)}
                   style={{
-                    marginTop: 16, background: `${theme.color}10`, border: `1px solid ${theme.color}25`,
-                    color: theme.color, padding: '8px 14px', borderRadius: 7,
-                    fontSize: 10, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                    letterSpacing: '0.04em', width: '100%', transition: 'background 0.15s',
+                    marginTop: 18,
+                    background: `linear-gradient(135deg, ${theme.color}18 0%, ${theme.color}08 100%)`,
+                    border: `1.5px solid ${theme.color}35`,
+                    color: theme.color, padding: '9px 16px', borderRadius: 8,
+                    fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                    letterSpacing: '0.05em', width: '100%',
+                    transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+                    textTransform: 'uppercase',
                   }}
-                  onMouseEnter={e => ((e.target as HTMLElement).style.background = `${theme.color}1e`)}
-                  onMouseLeave={e => ((e.target as HTMLElement).style.background = `${theme.color}10`)}
+                  onMouseEnter={e => {
+                    (e.target as HTMLElement).style.background = `linear-gradient(135deg, ${theme.color}28 0%, ${theme.color}14 100%)`
+                    ;(e.target as HTMLElement).style.borderColor = `${theme.color}60`
+                  }}
+                  onMouseLeave={e => {
+                    (e.target as HTMLElement).style.background = `linear-gradient(135deg, ${theme.color}18 0%, ${theme.color}08 100%)`
+                    ;(e.target as HTMLElement).style.borderColor = `${theme.color}35`
+                  }}
                 >
-                  {a.cta} →
+                  {a.cta}
                 </button>
               </Tooltip>
             </div>
@@ -211,21 +232,21 @@ function Sidebar({ tab, setTab, accessKey, connected }: {
       zIndex: 100, overflowY: 'auto',
     }}>
       {/* Logo */}
-      <div style={{ padding: '26px 22px 22px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: '28px 22px 24px', borderBottom: '1.5px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
           <div style={{
-            width: 30, height: 30, borderRadius: 7, flexShrink: 0,
-            background: `linear-gradient(135deg, ${theme.color}cc, ${theme.secondary}aa)`,
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            background: `linear-gradient(135deg, ${theme.color}dd, ${theme.secondary}bb)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 800, color: '#000',
+            fontSize: 14, fontWeight: 900, color: '#000', letterSpacing: '-0.02em',
           }}>
             B
           </div>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-1)', lineHeight: 1.3 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--text-1)', lineHeight: 1.2 }}>
               BUSINESSAIOS
             </div>
-            <div style={{ fontSize: 9, color: 'var(--text-3)', letterSpacing: '0.08em' }}>v1.3.0</div>
+            <div style={{ fontSize: 8, color: 'var(--text-3)', letterSpacing: '0.1em', marginTop: 3, fontWeight: 500 }}>v1.3.0</div>
           </div>
         </div>
       </div>
@@ -361,25 +382,25 @@ function Dashboard({ accessKey }: { accessKey: string }) {
 
       <main style={{ marginLeft: 220, flex: 1, minHeight: '100vh', position: 'relative', zIndex: 1 }}>
 
-        {/* Page header */}
+        {/* Page header — more presence */}
         <div style={{
-          padding: '30px 48px 24px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          padding: '32px 48px 28px',
+          borderBottom: '1.5px solid rgba(255,255,255,0.08)',
           position: 'sticky', top: 0,
-          background: 'rgba(4, 9, 26, 0.94)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          background: 'rgba(4, 9, 26, 0.95)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
           zIndex: 40,
           display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
         }}>
           <div>
             <h1 style={{
-              fontSize: 22, fontWeight: 500, color: 'var(--text-1)',
-              letterSpacing: '-0.02em', marginBottom: 4,
+              fontSize: 28, fontWeight: 700, color: 'var(--text-1)',
+              letterSpacing: '-0.025em', marginBottom: 6,
             }}>
               {meta.title}
             </h1>
-            <p style={{ fontSize: 12, color: 'var(--text-2)' }}>{meta.desc}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 400, letterSpacing: '-0.01em' }}>{meta.desc}</p>
           </div>
 
           {/* Right: how-to widget + context CTA */}
