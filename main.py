@@ -96,7 +96,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="BusinessAIOS v1.3.0",
+    title=f"BusinessAIOS v{settings.APP_VERSION}",
     description=(
         "🚀 PRODUCTION-READY Autonomous Business Intelligence OS\n\n"
         "✅ Autonomous Loop | ✅ RAG + Semantic Search | ✅ Tool Invocation\n"
@@ -105,7 +105,7 @@ app = FastAPI(
         "✅ Webhooks | ✅ Analytics | ✅ Multi-Tenant SaaS | ✅ Dashboard API\n\n"
         "Ready to deploy. Ready to monetize."
     ),
-    version="1.3.0",
+    version=settings.APP_VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
