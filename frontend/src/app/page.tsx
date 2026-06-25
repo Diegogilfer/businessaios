@@ -116,10 +116,10 @@ function Overview({ setTab }: { setTab: (t: Tab) => void }) {
     <div className="animate-fade-in">
       {/* KPI cards — more visual */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 48 }}>
-        <KpiCard label="Health Score"  value={hd?.health_score} suffix="%" accent="var(--primary)" sub="Sistema operativo" />
-        <KpiCard label="Completadas"   value={ed?.completed}    accent="var(--violet)"              sub={`de ${ed?.total_executions ?? 0} totales`} />
-        <KpiCard label="Quality Score" value={ed?.avg_quality}  decimals={2} accent="var(--blue)"   sub="promedio 7 días" />
-        <KpiCard label="Conocimiento"  value={kd?.total_entries} accent="var(--amber)"              sub={`+${kd?.new_this_week ?? 0} esta semana`} />
+        <KpiCard label="Health Score"  value={hd?.health_score as number | undefined} suffix="%" accent="var(--primary)" sub="Sistema operativo" />
+        <KpiCard label="Completadas"   value={ed?.completed as number | undefined}    accent="var(--violet)"              sub={`de ${(ed?.total_executions as number) ?? 0} totales`} />
+        <KpiCard label="Quality Score" value={ed?.avg_quality as number | undefined}  decimals={2} accent="var(--blue)"   sub="promedio 7 días" />
+        <KpiCard label="Conocimiento"  value={kd?.total_entries as number | undefined} accent="var(--amber)"              sub={`+${(kd?.new_this_week as number) ?? 0} esta semana`} />
       </div>
 
       {/* Quick actions — urban vibe */}
