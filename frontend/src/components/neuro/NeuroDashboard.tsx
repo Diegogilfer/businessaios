@@ -6,7 +6,10 @@ import { AGENTS } from '@/lib/constants'
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const r = await fetch(`${API}${path}`, options)
+  const key = typeof window !== 'undefined' ? localStorage.getItem('baios_access_key') : null
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (key) headers['Authorization'] = `Bearer ${key}`
+  const r = await fetch(`${API}${path}`, { headers, ...options })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }

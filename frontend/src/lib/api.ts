@@ -6,8 +6,12 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 async function req<T>(path: string, opts?: RequestInit): Promise<T> {
+  const key = typeof window !== 'undefined' ? localStorage.getItem('baios_access_key') : null
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (key) headers['Authorization'] = `Bearer ${key}`
+
   const r = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     ...opts,
   })
   if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`)
@@ -32,7 +36,8 @@ export const getAnalyticsKnowledge = () => req('/analytics/knowledge')
 // ── Tasks ────────────────────────────────────────────────────
 export const listTasks  = (status?: string) => req(`/tasks${status ? `?status=${status}` : ''}`)
 export const getTask    = (id: string) => req(`/tasks/${id}`)
-export const createTask = (body: TaskCreate) => req('/tasks', { method: 'POST', body: JSON.stringify(body) })
+export const createTask = (body: TaskCreate) =>
+  req<{ task: Task }>('/tasks/', { method: 'POST', body: JSON.stringify(body) }).then(r => r.task)
 export const executeTask = (task_id: string, use_collaboration = true) =>
   req('/tasks/execute', { method: 'POST', body: JSON.stringify({ task_id, use_collaboration }) })
 
