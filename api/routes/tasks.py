@@ -55,7 +55,7 @@ async def execute_task(data: ExecuteTaskRequest):
             f"[/execute] task={data.task_id} | "
             f"collaboration={data.use_collaboration}"
         )
-        result = await engine.execute_task(
+        result = await engine.execute(
             task_id=data.task_id,
             use_collaboration=data.use_collaboration,
         )
