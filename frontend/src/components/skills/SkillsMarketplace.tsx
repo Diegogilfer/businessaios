@@ -118,7 +118,7 @@ function ExecuteModal({ skill, onClose }: { skill: Skill; onClose: () => void })
 
   // Extraer parámetros del template
   const paramNames = Array.from(new Set(
-    [...(skill.prompt_template?.matchAll(/\{(\w+)\}/g) ?? [])].map(m => m[1])
+    Array.from(skill.prompt_template?.matchAll(/\{(\w+)\}/g) ?? []).map(m => m[1])
   ))
 
   async function execute() {

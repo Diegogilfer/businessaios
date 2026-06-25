@@ -140,8 +140,8 @@ export default function CompanionPanel({ currentTab }: { currentTab: string }) {
     rec.continuous = false
     rec.onstart  = () => setListening(true)
     rec.onend    = () => setListening(false)
-    rec.onresult = (e: { results: { 0: { 0: { transcript: string } } }[] }) =>
-      send(e.results[0][0].transcript)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => send(e.results[0][0].transcript)
     rec.start()
   }
 
