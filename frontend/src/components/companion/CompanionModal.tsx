@@ -3,9 +3,11 @@ import { useState } from 'react'
 import { AGENT_THEMES, AgentKey, useAgentTheme } from '@/contexts/AgentThemeContext'
 
 export default function CompanionModal() {
-  const { setAgent, showModal, closeModal, agent: currentAgent } = useAgentTheme()
+  const { setAgent, showModal, closeModal } = useAgentTheme()
   const [selected, setSelected] = useState<AgentKey | null>(null)
-  const [hovered, setHovered] = useState<AgentKey | null>(null)
+  const [hovered, setHovered]   = useState<AgentKey | null>(null)
+  // Safe localStorage check (client-only, 'use client' guarantees it)
+  const hasExisting = typeof window !== 'undefined' && !!localStorage.getItem('baios_companion_agent')
 
   if (!showModal) return null
 
@@ -153,7 +155,7 @@ export default function CompanionModal() {
         </button>
 
         {/* Skip / change — only show if already have one set */}
-        {localStorage.getItem('baios_companion_agent') && (
+        {hasExisting && (
           <button
             onClick={closeModal}
             style={{

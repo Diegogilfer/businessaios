@@ -117,15 +117,17 @@ export default function CompanionPanel({ currentTab }: { currentTab: string }) {
   }
 
   function startVoice() {
-    const SR = (window as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown })
-    const Rec = SR.SpeechRecognition || SR.webkitSpeechRecognition
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any
+    const Rec = w.SpeechRecognition || w.webkitSpeechRecognition
     if (!Rec) { push('assistant', 'Reconocimiento de voz disponible solo en Chrome.'); return }
-    const rec = new (Rec as new () => SpeechRecognition)()
+    const rec = new Rec()
     rec.lang = 'es-ES'
     rec.continuous = false
-    rec.onstart = () => setListening(true)
-    rec.onend   = () => setListening(false)
-    rec.onresult = (e: SpeechRecognitionEvent) => send(e.results[0][0].transcript)
+    rec.onstart  = () => setListening(true)
+    rec.onend    = () => setListening(false)
+    rec.onresult = (e: { results: { 0: { 0: { transcript: string } } }[] }) =>
+      send(e.results[0][0].transcript)
     rec.start()
   }
 
