@@ -72,7 +72,7 @@ async def get_opportunities(limit: int = 20):
         from core.database import get_supabase
         db = get_supabase()
         resp = (
-            db.table("arbitrage_results")
+            db.table("arbitrage_opportunities")
             .select("*")
             .order("created_at", desc=True)
             .limit(limit)

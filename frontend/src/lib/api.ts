@@ -56,6 +56,16 @@ export const semanticSearch = (query: string, limit = 5) =>
 export const listKnowledge  = (category?: string) =>
   req(`/knowledge${category ? `?category=${category}` : ''}`)
 
+// ── Chat ─────────────────────────────────────────────────────
+export const createConversation = (agent_role: string, title = '') =>
+  req<{ conversation_id: string }>('/chat/conversations', {
+    method: 'POST', body: JSON.stringify({ agent_role, title })
+  })
+export const sendChatMessage = (conversation_id: string, agent_role: string, message: string) =>
+  req<{ response: string }>('/chat/message', {
+    method: 'POST', body: JSON.stringify({ conversation_id, agent_role, message })
+  })
+
 // ── Security ─────────────────────────────────────────────────
 export const getSecurityStatus = () => req('/security/status')
 export const getSecurityAudit  = () => req('/security/audit')
