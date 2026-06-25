@@ -239,7 +239,7 @@ function Dashboard({ accessKey }: { accessKey: string }) {
               <h2 style={{ fontSize: 20, fontWeight: 300, color: 'var(--text-1)', marginBottom: 4 }}>Ejecutar Tarea</h2>
               <p style={{ fontSize: 12, color: 'var(--text-3)' }}>Los 6 agentes colaboran en paralelo → CEO consolida el resultado</p>
             </div>
-            <TaskExecutor onSuccess={() => setTab('overview')} />
+            <TaskExecutor />
           </div>
         )}
         {tab === 'agents'     && <AgentGrid />}
