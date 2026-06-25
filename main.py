@@ -169,6 +169,7 @@ OPEN_PATHS = {"/docs", "/redoc", "/openapi.json", "/auth/verify",
               "/onboarding/register", "/onboarding/plans", "/onboarding/health",
               "/observability/health",
               "/skills/catalog", "/skills/installed",
+              "/chat/conversations", "/chat/message",
               "/channels/whatsapp/webhook", "/channels/telegram/webhook"}
 
 # Endpoints sensibles a fuerza bruta — límite estricto por IP
