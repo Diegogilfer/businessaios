@@ -49,5 +49,5 @@ Write-Host ""
 Start-Sleep -Seconds 12
 Start-Process "http://localhost:3000"
 
-Write-Host "  Navegador abierto. Si no carga, espera 10 segundos mas y recarga." -ForegroundColor Cyan
+Write-Host "  Navegador abierto. Si no carga, espera 10 segundos y recarga." -ForegroundColor Cyan
 Write-Host ""
