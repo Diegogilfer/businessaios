@@ -12,6 +12,7 @@ import CeoDashboard from '@/components/dashboards/CeoDashboard'
 import SecurityDashboard from '@/components/security/SecurityDashboard'
 import CreationHub from '@/components/tools/CreationHub'
 import MemoryPanel from '@/components/memory/MemoryPanel'
+import SkillsPanel from '@/components/skills/SkillsPanel'
 
 // ── Category config ───────────────────────────────────────────
 type Cat = 'ecommerce' | 'marketing' | 'finance' | 'ceo' | 'security' | 'tools'
@@ -86,7 +87,7 @@ const CATS: {
 ]
 
 // ── Sidebar ───────────────────────────────────────────────────
-function Sidebar({ cat, setCat, connected, onMemory }: { cat: Cat; setCat: (c: Cat) => void; connected: boolean; onMemory: () => void }) {
+function Sidebar({ cat, setCat, connected, onMemory, onSkills }: { cat: Cat; setCat: (c: Cat) => void; connected: boolean; onMemory: () => void; onSkills: () => void }) {
   const [hovered, setHovered] = useState<Cat | null>(null)
   const active = CATS.find(c => c.id === cat)!
 
@@ -175,6 +176,33 @@ function Sidebar({ cat, setCat, connected, onMemory }: { cat: Cat; setCat: (c: C
           )
         })}
       </nav>
+
+      {/* Skills button */}
+      <button
+        onClick={onSkills}
+        title="Skills & Prompts (S)"
+        aria-label="Abrir panel de skills"
+        style={{
+          width: 38, height: 38, borderRadius: 9,
+          background: 'rgba(99,102,241,0.1)',
+          border: '1px solid rgba(99,102,241,0.25)',
+          color: '#6366F1', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 6, transition: 'var(--transition)',
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.2)'
+          ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(99,102,241,0.5)'
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.1)'
+          ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(99,102,241,0.25)'
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      </button>
 
       {/* Memory button */}
       <button
@@ -316,6 +344,7 @@ function TopBar({ cat, onCta }: { cat: typeof CATS[0]; onCta: () => void }) {
 function Dashboard({ accessKey }: { accessKey: string }) {
   const [cat, setCat] = useState<Cat>('ecommerce')
   const [memoryOpen, setMemoryOpen] = useState(false)
+  const [skillsOpen, setSkillsOpen] = useState(false)
   const { connected } = useWebSocket()
   const current = CATS.find(c => c.id === cat)!
 
@@ -326,6 +355,7 @@ function Dashboard({ accessKey }: { accessKey: string }) {
       const idx = parseInt(e.key) - 1
       if (idx >= 0 && idx < CATS.length) setCat(CATS[idx].id)
       if (e.key.toLowerCase() === 'm') setMemoryOpen(o => !o)
+      if (e.key.toLowerCase() === 's') setSkillsOpen(o => !o)
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -339,7 +369,7 @@ function Dashboard({ accessKey }: { accessKey: string }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
       <CompanionModal />
-      <Sidebar cat={cat} setCat={setCat} connected={connected} onMemory={() => setMemoryOpen(true)} />
+      <Sidebar cat={cat} setCat={setCat} connected={connected} onMemory={() => setMemoryOpen(true)} onSkills={() => setSkillsOpen(true)} />
 
       <main style={{ marginLeft: 72, flex: 1, minHeight: '100vh', position: 'relative', zIndex: 1 }}>
         <TopBar cat={current} onCta={handleCta} />
@@ -360,6 +390,7 @@ function Dashboard({ accessKey }: { accessKey: string }) {
 
       <CompanionPanel currentTab={cat} />
       <MemoryPanel open={memoryOpen} onClose={() => setMemoryOpen(false)} />
+      <SkillsPanel open={skillsOpen} onClose={() => setSkillsOpen(false)} accent="var(--tools)" />
     </div>
   )
 }

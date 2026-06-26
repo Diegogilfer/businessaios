@@ -70,6 +70,26 @@ export const sendChatMessage = (conversation_id: string, agent_role: string, mes
     method: 'POST', body: JSON.stringify({ conversation_id, agent_role, message })
   })
 
+// ── Skills Marketplace ───────────────────────────────────────
+export const getSkillsCatalog   = (category?: string, agentRole?: string) => {
+  const p = new URLSearchParams()
+  if (category)  p.set('category', category)
+  if (agentRole) p.set('agent_role', agentRole)
+  return req(`/skills/catalog${p.toString() ? `?${p}` : ''}`)
+}
+export const getInstalledSkills = () => req('/skills/installed')
+export const installSkill       = (skill_name: string) =>
+  req('/skills/install', { method: 'POST', body: JSON.stringify({ skill_name }) })
+export const uninstallSkill     = (skill_name: string) =>
+  req(`/skills/install/${skill_name}`, { method: 'DELETE' })
+export const executeSkill       = (skill_name: string, params: Record<string, string>) =>
+  req('/skills/execute', { method: 'POST', body: JSON.stringify({ skill_name, params }) })
+export const saveUserPrompt     = (title: string, content: string) =>
+  req('/knowledge/', { method: 'POST', body: JSON.stringify({
+    title, content, category: 'user_prompt',
+    source_agent: null, tags: ['user', 'prompt', 'business_context'],
+  })})
+
 // ── Security ─────────────────────────────────────────────────
 export const getSecurityStatus = () => req('/security/status')
 export const getSecurityAudit  = () => req('/security/audit')
