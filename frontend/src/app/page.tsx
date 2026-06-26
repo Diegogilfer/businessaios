@@ -1,520 +1,326 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import LoginGate from '@/components/auth/LoginGate'
-import { usePoll } from '@/hooks/usePoll'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { getAnalyticsHealth, getAnalyticsExecs, getAnalyticsKnowledge } from '@/lib/api'
-import KpiCard from '@/components/ui/KpiCard'
-import Tooltip from '@/components/ui/Tooltip'
-import { LiveFeedMini } from '@/components/dashboard/LiveFeed'
-import TaskExecutor from '@/components/tasks/TaskExecutor'
-import ProjectsView from '@/components/tasks/ProjectsView'
-import AgentGrid from '@/components/agents/AgentGrid'
-import ArbitrageTable from '@/components/arbitrage/ArbitrageTable'
-import KnowledgeExplorer from '@/components/knowledge/KnowledgeExplorer'
-import SaasDashboard from '@/components/saas/SaasDashboard'
-import NeuroDashboard from '@/components/neuro/NeuroDashboard'
-import SecurityDashboard from '@/components/security/SecurityDashboard'
 import CompanionModal from '@/components/companion/CompanionModal'
 import CompanionPanel from '@/components/companion/CompanionPanel'
-import { AgentThemeProvider, useAgentTheme } from '@/contexts/AgentThemeContext'
-import { AGENTS } from '@/lib/constants'
+import { AgentThemeProvider } from '@/contexts/AgentThemeContext'
+import EcommerceDashboard from '@/components/dashboards/EcommerceDashboard'
+import MarketingDashboard from '@/components/dashboards/MarketingDashboard'
+import FinanceDashboard from '@/components/dashboards/FinanceDashboard'
+import CeoDashboard from '@/components/dashboards/CeoDashboard'
+import SecurityDashboard from '@/components/security/SecurityDashboard'
+import CreationHub from '@/components/tools/CreationHub'
 
-type Tab = 'overview' | 'execute' | 'projects' | 'agents' | 'arbitrage' | 'knowledge' | 'neuro' | 'saas' | 'security'
+// ── Category config ───────────────────────────────────────────
+type Cat = 'ecommerce' | 'marketing' | 'finance' | 'ceo' | 'security' | 'tools'
 
-// ── Navigation ────────────────────────────────────────────────
-const NAV: { label: string; items: { id: Tab; label: string; desc: string }[] }[] = [
+const CATS: {
+  id: Cat
+  label: string
+  sub: string
+  accent: string
+  icon: React.ReactNode
+  cta?: string
+}[] = [
   {
-    label: 'Principal',
-    items: [
-      { id: 'overview',  label: 'Overview',      desc: 'Dashboard ejecutivo' },
-      { id: 'execute',   label: 'Ejecutar',       desc: 'Nueva tarea' },
-      { id: 'projects',  label: 'Proyectos',      desc: 'Historial de tareas' },
-    ],
+    id: 'ecommerce', label: 'E-commerce', sub: 'Ventas, productos y oportunidades',
+    accent: 'var(--ecom)',
+    cta: 'Escanear tendencias',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+      </svg>
+    ),
   },
   {
-    label: 'Inteligencia',
-    items: [
-      { id: 'agents',    label: 'Agentes',        desc: 'Estado y performance' },
-      { id: 'arbitrage', label: 'Arbitraje',      desc: 'Oportunidades ROI' },
-      { id: 'knowledge', label: 'Conocimiento',   desc: 'Base de datos' },
-      { id: 'neuro',     label: 'NeuroIA',        desc: 'Predicciones' },
-    ],
+    id: 'marketing', label: 'Marketing', sub: 'Publicidad, viral y monetización',
+    accent: 'var(--mkt)',
+    cta: 'Generar contenido',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+      </svg>
+    ),
   },
   {
-    label: 'Plataforma',
-    items: [
-      { id: 'saas',      label: 'SaaS',           desc: 'Planes y billing' },
-      { id: 'security',  label: 'Seguridad',      desc: 'Auditoría activa' },
-    ],
+    id: 'finance', label: 'Finanzas', sub: 'Contador inteligente personal y empresarial',
+    accent: 'var(--fin)',
+    cta: 'Generar reporte',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'ceo', label: 'CEO', sub: 'Centro de comando — todo, con todos',
+    accent: 'var(--ceo)',
+    cta: 'Ejecutar tarea estratégica',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'security', label: 'Seguridad', sub: 'Monitoreo autónomo 24/7',
+    accent: 'var(--sec)',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'tools', label: 'Crear', sub: 'CRM · Web Pages · Quick Design',
+    accent: 'var(--tools)',
+    cta: 'Nuevo proyecto',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+      </svg>
+    ),
   },
 ]
-
-const PAGE_META: Record<Tab, { title: string; desc: string; howto: string }> = {
-  overview:  { title: 'Dashboard',       desc: 'Resumen ejecutivo del sistema autónomo',                              howto: 'Visualiza métricas clave y lanza acciones desde los atajos rápidos.' },
-  execute:   { title: 'Ejecutar Tarea',  desc: 'Los 6 agentes colaboran en paralelo → CEO consolida el resultado',   howto: 'Escribe título y descripción de lo que necesitas. Elige tu agente acompañante. El CEO consolida y el agente te guía paso a paso.' },
-  projects:  { title: 'Proyectos',       desc: 'Historial de todas las tareas ejecutadas',                           howto: 'Aquí viven todos tus proyectos. Puedes ver el resultado completo de cada ejecución.' },
-  agents:    { title: 'Agentes',         desc: 'Estado y performance de los 6 agentes especializados',              howto: 'Cada agente tiene un rol. Haz clic en uno para ver sus últimas ejecuciones.' },
-  arbitrage: { title: 'Arbitraje',       desc: 'Oportunidades de importación detectadas automáticamente',           howto: 'Escanea categorías para encontrar productos con alto ROI entre Amazon y AliExpress.' },
-  knowledge: { title: 'Conocimiento',    desc: 'Base de conocimiento generada y curada por los agentes',            howto: 'Busca análisis, estrategias y aprendizajes anteriores generados por tus agentes.' },
-  neuro:     { title: 'NeuroIA',         desc: 'Predicciones de tendencias y análisis de patrones',                 howto: 'El sistema analiza patrones de tus ejecuciones y predice las mejores oportunidades.' },
-  saas:      { title: 'SaaS',           desc: 'Planes, facturación y gestión de tenants',                          howto: 'Gestiona tu suscripción, revisa límites de uso y administra tenants.' },
-  security:  { title: 'Seguridad',      desc: 'Auditoría activa y alertas del SecurityAgent',                      howto: 'El SecurityAgent monitorea el sistema. Revisa alertas y score de seguridad.' },
-}
-
-const QUICK_ACTIONS: { label: string; sub: string; tab: Tab; cta: string }[] = [
-  { label: 'Ejecutar Tarea',    sub: 'Los 6 agentes colaboran en paralelo y el CEO consolida el resultado final con tu agente acompañante.',                  tab: 'execute',   cta: 'Ejecutar ahora' },
-  { label: 'Ver Proyectos',     sub: 'Revisa el historial completo de tareas ejecutadas, sus resultados y el progreso de cada una.',                          tab: 'projects',  cta: 'Ver historial' },
-  { label: 'Escanear Arbitraje',sub: 'Detecta productos con alto margen de importación entre Amazon y AliExpress. Resultado rankeado por ROI.',               tab: 'arbitrage', cta: 'Ver oportunidades' },
-  { label: 'Base de Conocimiento', sub: 'Explora análisis, estrategias y aprendizajes acumulados por los agentes en ejecuciones anteriores.',                 tab: 'knowledge', cta: 'Explorar' },
-]
-
-const AGENT_PERF: Record<string, number> = {
-  ceo: 88, research: 76, commercial: 83, content: 71, finance: 79, operations: 74,
-}
-
-function AgentBar({ role }: { role: string }) {
-  const { theme } = useAgentTheme()
-  const ag    = AGENTS[role as keyof typeof AGENTS]
-  const width = AGENT_PERF[role] ?? 70
-  return (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Tooltip text={ag?.desc ?? ''} position="right">
-          <span style={{ fontSize: 12, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 8, cursor: 'default' }}>
-            <span style={{ color: ag?.color, fontSize: 12 }}>{ag?.icon}</span>
-            <span style={{ fontWeight: 500 }}>{ag?.label}</span>
-          </span>
-        </Tooltip>
-        <span style={{ fontSize: 10, color: ag?.color, fontFamily: "'JetBrains Mono', monospace" }}>{width}%</span>
-      </div>
-      <div style={{ height: 3, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{
-          height: '100%', width: `${width}%`,
-          background: `linear-gradient(90deg, ${ag?.color}55, ${ag?.color}cc)`,
-          borderRadius: 99, transition: 'width 1.4s cubic-bezier(.16,1,.3,1)',
-        }} />
-      </div>
-    </div>
-  )
-}
-
-// ── Overview ──────────────────────────────────────────────────
-function Overview({ setTab }: { setTab: (t: Tab) => void }) {
-  const { theme } = useAgentTheme()
-  const hf = useCallback(() => getAnalyticsHealth(), [])
-  const ef = useCallback(() => getAnalyticsExecs(7), [])
-  const kf = useCallback(() => getAnalyticsKnowledge(), [])
-  const { data: h } = usePoll(hf, 10000)
-  const { data: e } = usePoll(ef, 15000)
-  const { data: k } = usePoll(kf, 20000)
-  const hd = h as Record<string, unknown> | null
-  const ed = e as Record<string, unknown> | null
-  const kd = k as Record<string, unknown> | null
-
-  return (
-    <div className="animate-fade-in">
-      {/* KPI cards — more visual */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 48 }}>
-        <KpiCard label="Health Score"  value={hd?.health_score as number | undefined} suffix="%" accent="var(--primary)" sub="Sistema operativo" />
-        <KpiCard label="Completadas"   value={ed?.completed as number | undefined}    accent="var(--violet)"              sub={`de ${(ed?.total_executions as number) ?? 0} totales`} />
-        <KpiCard label="Quality Score" value={ed?.avg_quality as number | undefined}  decimals={2} accent="var(--blue)"   sub="promedio 7 días" />
-        <KpiCard label="Conocimiento"  value={kd?.total_entries as number | undefined} accent="var(--amber)"              sub={`+${(kd?.new_this_week as number) ?? 0} esta semana`} />
-      </div>
-
-      {/* Quick actions — urban vibe */}
-      <div style={{ marginBottom: 48 }}>
-        <p style={{ fontSize: 9, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 700, marginBottom: 20 }}>
-          Acciones rápidas
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-          {QUICK_ACTIONS.map(a => (
-            <div
-              key={a.tab}
-              style={{
-                background: 'var(--glass-bg)',
-                border: `1.5px solid rgba(255,255,255,0.08)`,
-                borderRadius: 12, padding: '24px 22px',
-                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                minHeight: 200,
-                transition: 'border-color 0.25s cubic-bezier(0.4,0,0.2,1), background 0.25s, transform 0.25s',
-                cursor: 'pointer', position: 'relative', overflow: 'hidden',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.borderColor = `${theme.color}50`
-                ;(e.currentTarget as HTMLElement).style.background = `${theme.color}06`
-                ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)'
-                ;(e.currentTarget as HTMLElement).style.background = 'var(--glass-bg)'
-                ;(e.currentTarget as HTMLElement).style.transform = 'none'
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 10, letterSpacing: '-0.02em' }}>
-                  {a.label}
-                </div>
-                <p style={{ fontSize: 11.5, color: 'var(--text-2)', lineHeight: 1.7 }}>{a.sub}</p>
-              </div>
-              <Tooltip text={`Ir a ${a.label}`} position="bottom">
-                <button
-                  onClick={() => setTab(a.tab)}
-                  style={{
-                    marginTop: 18,
-                    background: `linear-gradient(135deg, ${theme.color}18 0%, ${theme.color}08 100%)`,
-                    border: `1.5px solid ${theme.color}35`,
-                    color: theme.color, padding: '9px 16px', borderRadius: 8,
-                    fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                    letterSpacing: '0.05em', width: '100%',
-                    transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
-                    textTransform: 'uppercase',
-                  }}
-                  onMouseEnter={e => {
-                    (e.target as HTMLElement).style.background = `linear-gradient(135deg, ${theme.color}28 0%, ${theme.color}14 100%)`
-                    ;(e.target as HTMLElement).style.borderColor = `${theme.color}60`
-                  }}
-                  onMouseLeave={e => {
-                    (e.target as HTMLElement).style.background = `linear-gradient(135deg, ${theme.color}18 0%, ${theme.color}08 100%)`
-                    ;(e.target as HTMLElement).style.borderColor = `${theme.color}35`
-                  }}
-                >
-                  {a.cta}
-                </button>
-              </Tooltip>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Bottom row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <div className="glass" style={{ borderRadius: 10, padding: 26 }}>
-          <p style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 600, marginBottom: 24 }}>
-            Performance de Agentes
-          </p>
-          {Object.keys(AGENTS).map(r => <AgentBar key={r} role={r} />)}
-          <Tooltip text="Ver estado detallado de cada agente" position="top">
-            <button
-              onClick={() => setTab('agents')}
-              style={{
-                marginTop: 8, width: '100%', padding: '8px', background: 'transparent',
-                border: '1px solid var(--glass-border)', borderRadius: 6, color: 'var(--text-3)',
-                fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em',
-                transition: 'color 0.15s, border-color 0.15s',
-              }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.color = 'var(--text-1)'; (e.target as HTMLElement).style.borderColor = 'rgba(255,255,255,0.15)' }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.color = 'var(--text-3)'; (e.target as HTMLElement).style.borderColor = 'var(--glass-border)' }}
-            >
-              Ver detalle de agentes →
-            </button>
-          </Tooltip>
-        </div>
-        <LiveFeedMini />
-      </div>
-    </div>
-  )
-}
 
 // ── Sidebar ───────────────────────────────────────────────────
-function Sidebar({ tab, setTab, accessKey, connected }: {
-  tab: Tab; setTab: (t: Tab) => void; accessKey: string; connected: boolean
-}) {
-  const { theme, openModal } = useAgentTheme()
+function Sidebar({ cat, setCat, connected }: { cat: Cat; setCat: (c: Cat) => void; connected: boolean }) {
+  const [hovered, setHovered] = useState<Cat | null>(null)
+  const active = CATS.find(c => c.id === cat)!
 
   return (
     <aside style={{
-      width: 220, minHeight: '100vh',
-      background: '#060A18',
+      width: 72,
+      minHeight: '100vh',
+      background: 'rgba(2, 6, 23, 0.95)',
       borderRight: '1px solid rgba(255,255,255,0.06)',
-      display: 'flex', flexDirection: 'column',
-      position: 'fixed', top: 0, left: 0, bottom: 0,
-      zIndex: 100, overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: '18px 0',
+      position: 'fixed',
+      top: 0, left: 0, bottom: 0,
+      zIndex: 100,
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
     }}>
-      {/* Logo */}
-      <div style={{ padding: '28px 22px 24px', borderBottom: '1.5px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-            background: `linear-gradient(135deg, ${theme.color}dd, ${theme.secondary}bb)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, fontWeight: 900, color: '#000', letterSpacing: '-0.02em',
-          }}>
-            B
-          </div>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--text-1)', lineHeight: 1.2 }}>
-              BUSINESSAIOS
-            </div>
-            <div style={{ fontSize: 8, color: 'var(--text-3)', letterSpacing: '0.1em', marginTop: 3, fontWeight: 500 }}>v1.3.0</div>
-          </div>
-        </div>
-      </div>
+      {/* Brand */}
+      <div style={{
+        width: 38, height: 38,
+        borderRadius: 10,
+        background: `linear-gradient(135deg, ${active.accent} 0%, rgba(255,255,255,0.1) 100%)`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 15, fontWeight: 700, color: '#fff',
+        marginBottom: 24,
+        transition: 'background 0.4s var(--ease)',
+        flexShrink: 0,
+        boxShadow: `0 4px 20px ${active.accent}40`,
+      }}>B</div>
 
-      {/* Nav */}
-      <nav style={{ flex: 1, padding: '18px 10px' }}>
-        {NAV.map(group => (
-          <div key={group.label} style={{ marginBottom: 28 }}>
-            <div style={{
-              fontSize: 9, color: 'var(--text-3)', textTransform: 'uppercase',
-              letterSpacing: '0.16em', fontWeight: 600, padding: '0 10px', marginBottom: 8,
-            }}>
-              {group.label}
+      {/* Nav items */}
+      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, width: '100%', padding: '0 8px' }}>
+        {CATS.map(c => {
+          const isActive = c.id === cat
+          const isHov = hovered === c.id
+          return (
+            <div key={c.id} style={{ position: 'relative' }}>
+              {/* Active bar */}
+              {isActive && (
+                <div style={{
+                  position: 'absolute', left: 0, top: '15%', bottom: '15%',
+                  width: 2.5, background: c.accent,
+                  borderRadius: '0 2px 2px 0',
+                  boxShadow: `0 0 8px ${c.accent}`,
+                }} />
+              )}
+              <button
+                onClick={() => setCat(c.id)}
+                onMouseEnter={() => setHovered(c.id)}
+                onMouseLeave={() => setHovered(null)}
+                title={c.label}
+                aria-label={c.label}
+                style={{
+                  width: '100%',
+                  height: 52,
+                  borderRadius: 10,
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 3,
+                  background: isActive
+                    ? `${c.accent}14`
+                    : isHov ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: isActive ? c.accent : isHov ? 'rgba(241,245,255,0.75)' : 'var(--text-3)',
+                  transition: 'all 0.18s var(--ease)',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {c.id === 'security' && (
+                  <div style={{
+                    position: 'absolute', top: 8, right: 8,
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: '#10B981',
+                    animation: 'pulse-dot 2.2s ease infinite',
+                  }} />
+                )}
+                {c.icon}
+                <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.04em' }}>{c.label}</span>
+              </button>
             </div>
-            {group.items.map(item => {
-              const active = tab === item.id
-              return (
-                <Tooltip key={item.id} text={item.desc} position="right">
-                  <button
-                    onClick={() => setTab(item.id)}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '8px 10px', borderRadius: 7, border: 'none',
-                      background: active ? `${theme.color}0d` : 'transparent',
-                      cursor: 'pointer', transition: 'background 0.15s',
-                      textAlign: 'left', fontFamily: 'inherit',
-                      position: 'relative', marginBottom: 2,
-                    }}
-                    onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)' }}
-                    onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-                  >
-                    {active && (
-                      <div style={{
-                        position: 'absolute', left: 0, top: '22%', bottom: '22%',
-                        width: 2.5, background: theme.color, borderRadius: 2,
-                      }} />
-                    )}
-                    <div style={{ overflow: 'hidden' }}>
-                      <div style={{
-                        fontSize: 12, fontWeight: active ? 600 : 400,
-                        color: active ? theme.color : 'var(--text-2)',
-                        lineHeight: 1.3, whiteSpace: 'nowrap',
-                      }}>
-                        {item.label}
-                      </div>
-                      <div style={{ fontSize: 9, color: 'var(--text-3)', lineHeight: 1.2, marginTop: 1, whiteSpace: 'nowrap' }}>
-                        {item.desc}
-                      </div>
-                    </div>
-                  </button>
-                </Tooltip>
-              )
-            })}
-          </div>
-        ))}
+          )
+        })}
       </nav>
 
-      {/* Companion indicator */}
-      <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <button
-          onClick={openModal}
-          style={{
-            width: '100%', padding: '9px 12px', borderRadius: 8, cursor: 'pointer',
-            background: `${theme.color}09`, border: `1px solid ${theme.color}20`,
-            display: 'flex', alignItems: 'center', gap: 9, fontFamily: 'inherit',
-            transition: 'background 0.15s',
-          }}
-          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = `${theme.color}16`)}
-          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = `${theme.color}09`)}
-        >
-          <span style={{ fontSize: 14, color: theme.color }}>{theme.icon}</span>
-          <div style={{ textAlign: 'left', overflow: 'hidden' }}>
-            <div style={{ fontSize: 10, color: theme.color, fontWeight: 600, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-              {theme.name}
-            </div>
-            <div style={{ fontSize: 9, color: 'var(--text-3)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
-              Cambiar agente
-            </div>
-          </div>
-        </button>
-      </div>
-
-      {/* Footer */}
-      <div style={{ padding: '14px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: '50%',
-              background: connected ? theme.color : 'var(--red)',
-              display: 'inline-block', flexShrink: 0,
-            }} />
-            <span style={{ fontSize: 10, color: 'var(--text-2)', fontWeight: 500 }}>
-              {connected ? 'Conectado' : 'Offline'}
-            </span>
-          </div>
-          <button
-            onClick={() => { localStorage.removeItem('baios_access_key'); window.location.reload() }}
-            style={{
-              fontSize: 9, color: 'var(--text-3)', background: 'transparent', border: 'none',
-              cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em',
-              textTransform: 'uppercase', transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => ((e.target as HTMLElement).style.color = 'var(--red)')}
-            onMouseLeave={e => ((e.target as HTMLElement).style.color = 'var(--text-3)')}
-          >
-            Salir
-          </button>
-        </div>
+      {/* Connection status */}
+      <div style={{ padding: '12px 0 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
         <div style={{
-          fontSize: 9, color: 'var(--text-3)', fontFamily: "'JetBrains Mono', monospace",
-          background: 'rgba(255,255,255,0.03)', padding: '5px 9px', borderRadius: 5,
-          border: '1px solid rgba(255,255,255,0.06)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {accessKey.slice(0, 18)}…
-        </div>
+          width: 7, height: 7, borderRadius: '50%',
+          background: connected ? '#10B981' : '#EF4444',
+          boxShadow: connected ? '0 0 6px #10B981' : 'none',
+          animation: connected ? 'pulse-dot 2.2s ease infinite' : 'none',
+        }} />
+        <span style={{ fontSize: 8, color: 'var(--text-3)', letterSpacing: '0.05em' }}>
+          {connected ? 'LIVE' : 'OFF'}
+        </span>
       </div>
     </aside>
   )
 }
 
+// ── Top Bar ───────────────────────────────────────────────────
+function TopBar({ cat, onCta }: { cat: typeof CATS[0]; onCta: () => void }) {
+  return (
+    <div style={{
+      position: 'sticky', top: 0, zIndex: 40,
+      padding: '20px 40px 18px',
+      background: 'rgba(2, 6, 23, 0.85)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    }}>
+      <div className="animate-slide-right" key={cat.id}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 5 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 7,
+            background: `${cat.accent}18`,
+            border: `1px solid ${cat.accent}30`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: cat.accent,
+          }}>
+            {cat.icon}
+          </div>
+          <h1 style={{
+            fontSize: 22, fontWeight: 600,
+            color: 'var(--text-1)', letterSpacing: '-0.03em',
+          }}>
+            {cat.label}
+          </h1>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--text-2)', marginLeft: 40 }}>{cat.sub}</p>
+      </div>
+
+      {cat.cta && cat.id !== 'security' && (
+        <button
+          onClick={onCta}
+          style={{
+            padding: '9px 20px',
+            background: cat.accent,
+            border: 'none',
+            borderRadius: 9,
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            letterSpacing: '0.01em',
+            transition: 'opacity 0.15s, transform 0.15s',
+            boxShadow: `0 4px 16px ${cat.accent}40`,
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.opacity = '0.88'
+            ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.opacity = '1'
+            ;(e.currentTarget as HTMLElement).style.transform = 'none'
+          }}
+        >
+          {cat.cta} →
+        </button>
+      )}
+
+      {cat.id === 'security' && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '6px 14px',
+          background: 'rgba(16, 185, 129, 0.08)',
+          border: '1px solid rgba(16, 185, 129, 0.2)',
+          borderRadius: 8,
+        }}>
+          <div style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: '#10B981',
+            boxShadow: '0 0 8px #10B981',
+            animation: 'pulse-dot 2.2s ease infinite',
+          }} />
+          <span style={{ fontSize: 11, color: '#10B981', fontWeight: 500 }}>Sistema protegido · Autónomo</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Dashboard shell ───────────────────────────────────────────
 function Dashboard({ accessKey }: { accessKey: string }) {
-  const [tab, setTab] = useState<Tab>('overview')
+  const [cat, setCat] = useState<Cat>('ecommerce')
   const { connected } = useWebSocket()
-  const { theme }     = useAgentTheme()
-  const meta          = PAGE_META[tab]
+  const current = CATS.find(c => c.id === cat)!
+
+  // Keyboard shortcut: 1-6 for category switch
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      const idx = parseInt(e.key) - 1
+      if (idx >= 0 && idx < CATS.length) setCat(CATS[idx].id)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  const handleCta = useCallback(() => {
+    // Open companion for context-aware CTA
+    const ev = new CustomEvent('baios:open-companion', { detail: { cat } })
+    window.dispatchEvent(ev)
+  }, [cat])
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
       <CompanionModal />
-      <Sidebar tab={tab} setTab={setTab} accessKey={accessKey} connected={connected} />
+      <Sidebar cat={cat} setCat={setCat} connected={connected} />
 
-      <main style={{ marginLeft: 220, flex: 1, minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+      <main style={{ marginLeft: 72, flex: 1, minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+        <TopBar cat={current} onCta={handleCta} />
 
-        {/* Page header — more presence */}
-        <div style={{
-          padding: '32px 48px 28px',
-          borderBottom: '1.5px solid rgba(255,255,255,0.08)',
-          position: 'sticky', top: 0,
-          background: 'rgba(4, 9, 26, 0.95)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          zIndex: 40,
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-        }}>
-          <div>
-            <h1 style={{
-              fontSize: 28, fontWeight: 700, color: 'var(--text-1)',
-              letterSpacing: '-0.025em', marginBottom: 6,
-            }}>
-              {meta.title}
-            </h1>
-            <p style={{ fontSize: 12, color: 'var(--text-2)', fontWeight: 400, letterSpacing: '-0.01em' }}>{meta.desc}</p>
-          </div>
-
-          {/* Right: how-to widget + context CTA */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* How-to tooltip */}
-            <Tooltip text={meta.howto} position="bottom" maxWidth={280}>
-              <div style={{
-                width: 26, height: 26, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.09)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'default', color: 'var(--text-3)', fontSize: 11, fontWeight: 600,
-              }}>
-                ?
-              </div>
-            </Tooltip>
-
-            {/* Context CTAs */}
-            {tab === 'overview' && (
-              <Tooltip text="Crear y ejecutar una nueva tarea con los 6 agentes" position="bottom">
-                <button
-                  onClick={() => setTab('execute')}
-                  style={{
-                    background: theme.color, color: '#000', border: 'none',
-                    padding: '9px 20px', borderRadius: 7,
-                    fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                    fontFamily: 'inherit', letterSpacing: '0.04em', transition: 'opacity 0.15s',
-                  }}
-                  onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = '0.85')}
-                  onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
-                >
-                  Nueva Tarea
-                </button>
-              </Tooltip>
-            )}
-            {tab === 'projects' && (
-              <Tooltip text="Ejecutar una nueva tarea" position="bottom">
-                <button
-                  onClick={() => setTab('execute')}
-                  style={{
-                    background: `${theme.color}12`, color: theme.color,
-                    border: `1px solid ${theme.color}28`, padding: '8px 16px',
-                    borderRadius: 7, fontSize: 10, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.05em',
-                  }}
-                >
-                  + Nueva tarea
-                </button>
-              </Tooltip>
-            )}
-            {tab === 'arbitrage' && (
-              <Tooltip text="Analizar oportunidades con los agentes" position="bottom">
-                <button
-                  onClick={() => setTab('execute')}
-                  style={{
-                    background: 'rgba(240,164,74,0.10)', color: 'var(--amber)',
-                    border: '1px solid rgba(240,164,74,0.25)', padding: '8px 16px',
-                    borderRadius: 7, fontSize: 10, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  Analizar con agentes →
-                </button>
-              </Tooltip>
-            )}
-            {tab === 'knowledge' && (
-              <Tooltip text="Generar nuevo conocimiento ejecutando una tarea" position="bottom">
-                <button
-                  onClick={() => setTab('execute')}
-                  style={{
-                    background: 'rgba(74,156,240,0.10)', color: 'var(--blue)',
-                    border: '1px solid rgba(74,156,240,0.25)', padding: '8px 16px',
-                    borderRadius: 7, fontSize: 10, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  Generar conocimiento →
-                </button>
-              </Tooltip>
-            )}
-            {(tab === 'agents' || tab === 'neuro') && (
-              <Tooltip text="Asignar una tarea a un agente específico" position="bottom">
-                <button
-                  onClick={() => setTab('execute')}
-                  style={{
-                    background: `${theme.color}10`, color: theme.color,
-                    border: `1px solid ${theme.color}25`, padding: '8px 16px',
-                    borderRadius: 7, fontSize: 10, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  Ejecutar tarea →
-                </button>
-              </Tooltip>
-            )}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div style={{ padding: '40px 48px', maxWidth: 1100 }}>
-          {tab === 'overview'  && <Overview setTab={setTab} />}
-          {tab === 'execute'   && <TaskExecutor />}
-          {tab === 'projects'  && <ProjectsView />}
-          {tab === 'agents'    && <AgentGrid />}
-          {tab === 'arbitrage' && <ArbitrageTable />}
-          {tab === 'knowledge' && <KnowledgeExplorer />}
-          {tab === 'neuro'     && <NeuroDashboard />}
-          {tab === 'saas'      && <SaasDashboard />}
-          {tab === 'security'  && <SecurityDashboard />}
+        <div
+          key={cat}
+          className="animate-fade-in"
+          style={{ padding: '32px 40px', maxWidth: 1200 }}
+        >
+          {cat === 'ecommerce'  && <EcommerceDashboard accent={current.accent} />}
+          {cat === 'marketing'  && <MarketingDashboard accent={current.accent} />}
+          {cat === 'finance'    && <FinanceDashboard   accent={current.accent} />}
+          {cat === 'ceo'        && <CeoDashboard       accent={current.accent} />}
+          {cat === 'security'   && <SecurityDashboard />}
+          {cat === 'tools'      && <CreationHub        accent={current.accent} />}
         </div>
       </main>
 
-      {/* Companion floating panel */}
-      <CompanionPanel currentTab={tab} />
+      <CompanionPanel currentTab={cat} />
     </div>
   )
 }

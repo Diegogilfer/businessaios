@@ -5,7 +5,13 @@
       "mcp__visualize__read_me",
       "Bash(gh pr *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py \"AI business SaaS dashboard dark premium glassmorphism\" --design-system -p \"BusinessAIOS\" -f markdown)",
+      "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py \"AI business SaaS dashboard dark premium glassmorphism\" --design-system -p \"BusinessAIOS\" -f markdown)",
+      "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py \"dark SaaS premium sidebar navigation glassmorphism\" --domain style -n 3)",
+      "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py \"fintech saas dark premium\" --domain color -n 2)",
+      "Bash(git checkout *)"
     ]
   }
 }
