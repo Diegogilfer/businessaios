@@ -96,7 +96,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="BusinessAIOS v1.3.0",
+    title=f"BusinessAIOS v{settings.APP_VERSION}",
     description=(
         "🚀 PRODUCTION-READY Autonomous Business Intelligence OS\n\n"
         "✅ Autonomous Loop | ✅ RAG + Semantic Search | ✅ Tool Invocation\n"
@@ -105,25 +105,24 @@ app = FastAPI(
         "✅ Webhooks | ✅ Analytics | ✅ Multi-Tenant SaaS | ✅ Dashboard API\n\n"
         "Ready to deploy. Ready to monetize."
     ),
-    version="1.3.0",
+    version=settings.APP_VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
 )
 
-# CORS — en producción usa ALLOWED_ORIGINS del .env
-_origins = (
-    settings.ALLOWED_ORIGINS.split(",")
-    if settings.ALLOWED_ORIGINS and settings.APP_ENV == "production"
-    else ["*"]
-)
+# CORS — en desarrollo permite todo, en producción usa ALLOWED_ORIGINS
+if settings.APP_ENV == "development":
+    _origins = ["*"]
+else:
+    _origins = settings.ALLOWED_ORIGINS.split(",") if settings.ALLOWED_ORIGINS else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Process-Time"],
 )
 
 # Cabeceras de seguridad (HSTS, X-Frame-Options, CSP, etc.)
@@ -169,6 +168,8 @@ OPEN_PATHS = {"/docs", "/redoc", "/openapi.json", "/auth/verify",
               "/auth/generate-key", "/auth/status", "/health",
               "/onboarding/register", "/onboarding/plans", "/onboarding/health",
               "/observability/health",
+              "/skills/catalog", "/skills/installed",
+              "/chat/conversations", "/chat/message",
               "/channels/whatsapp/webhook", "/channels/telegram/webhook"}
 
 # Endpoints sensibles a fuerza bruta — límite estricto por IP
@@ -184,6 +185,17 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _cors_headers(request: Request) -> dict:
+    """CORS headers for early-exit responses (auth_middleware runs before CORSMiddleware)."""
+    origin = request.headers.get("origin", "*") or "*"
+    return {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "*",
+        "Access-Control-Allow-Headers": "*",
+    }
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     from core.security.rate_limiter import rate_limiter
@@ -191,6 +203,10 @@ async def auth_middleware(request: Request, call_next):
 
     path = request.url.path
     ip   = _client_ip(request)
+
+    # ── Permitir preflight CORS (OPTIONS) sin autenticación ──
+    if request.method == "OPTIONS":
+        return await call_next(request)
 
     # ── Rate limit estricto en endpoints de acceso (anti brute-force) ──
     if path in AUTH_SENSITIVE:
@@ -203,7 +219,7 @@ async def auth_middleware(request: Request, call_next):
             )
             return JSONResponse(
                 status_code=429,
-                headers={"Retry-After": str(retry)},
+                headers={"Retry-After": str(retry), **_cors_headers(request)},
                 content={"error": "Demasiados intentos", "retry_after_seconds": retry},
             )
 
@@ -213,7 +229,7 @@ async def auth_middleware(request: Request, call_next):
         if not allowed:
             return JSONResponse(
                 status_code=429,
-                headers={"Retry-After": str(retry)},
+                headers={"Retry-After": str(retry), **_cors_headers(request)},
                 content={"error": "Rate limit excedido", "retry_after_seconds": retry},
             )
 
@@ -242,6 +258,7 @@ async def auth_middleware(request: Request, call_next):
             )
         return JSONResponse(
             status_code=401,
+            headers=_cors_headers(request),
             content={
                 "error":   "Acceso no autorizado",
                 "message": "Incluye tu clave en el header X-Access-Key: BAIOS-XXXX-XXXX-XXXX",

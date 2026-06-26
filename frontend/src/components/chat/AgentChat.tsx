@@ -14,7 +14,10 @@ type Message = {
 type Conv = { id: string; agent_role: string; agent_name: string; title: string; last_msg?: string }
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
-  const r = await fetch(`${API}${path}`, { headers: { 'Content-Type': 'application/json' }, ...opts })
+  const key = typeof window !== 'undefined' ? localStorage.getItem('baios_access_key') : null
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (key) headers['Authorization'] = `Bearer ${key}`
+  const r = await fetch(`${API}${path}`, { headers, ...opts })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }

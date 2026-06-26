@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "mcp__visualize__show_widget"
+      "mcp__visualize__show_widget",
+      "mcp__visualize__read_me",
+      "Bash(gh pr *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

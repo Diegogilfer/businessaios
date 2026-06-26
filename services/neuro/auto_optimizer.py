@@ -38,6 +38,18 @@ class AutoOptimizationEngine:
         self._llm = None
         self._db  = None
 
+        # Umbrales adaptativos (se ajustan solos con el tiempo)
+        self.thresholds = {
+            "min_quality":         0.65,   # quality mínima aceptable
+            "degradation_window":  7,      # días para detectar degradación
+            "recovery_threshold":  0.75,   # calidad objetivo post-recovery
+            "auto_apply_confidence": 0.82, # confianza mínima para auto-aplicar
+            "max_retry_tasks":     3,      # retries máximos por tarea fallida
+        }
+
+        self._optimization_history: list[dict] = []
+        logger.info("AutoOptimizationEngine initialized")
+
     @property
     def llm(self):
         if self._llm is None:
@@ -54,18 +66,6 @@ class AutoOptimizationEngine:
             except Exception:
                 pass
         return self._db
-
-        # Umbrales adaptativos (se ajustan solos con el tiempo)
-        self.thresholds = {
-            "min_quality":         0.65,   # quality mínima aceptable
-            "degradation_window":  7,      # días para detectar degradación
-            "recovery_threshold":  0.75,   # calidad objetivo post-recovery
-            "auto_apply_confidence": 0.82, # confianza mínima para auto-aplicar
-            "max_retry_tasks":     3,      # retries máximos por tarea fallida
-        }
-
-        self._optimization_history: list[dict] = []
-        logger.info("AutoOptimizationEngine initialized")
 
     # ── 1. SELF-HEALING ─────────────────────────────────────
 
