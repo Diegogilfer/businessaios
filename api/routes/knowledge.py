@@ -40,6 +40,18 @@ async def get_by_category(category: str, limit: int = 10):
     return svc.get_knowledge_by_category(category=category, limit=limit)
 
 
+@router.get("/stats")
+async def knowledge_stats():
+    """Per-agent knowledge counts, total and today — for the live memory panel."""
+    return svc.get_stats()
+
+
+@router.get("/agent/{agent_role}")
+async def get_by_agent(agent_role: str, limit: int = 20):
+    """Get knowledge entries contributed by a specific agent."""
+    return svc.get_by_agent(agent_role=agent_role, limit=limit)
+
+
 @router.get("/search")
 async def search_knowledge(category: str, keywords: str | None = None, limit: int = 5):
     """Search knowledge entries by category and optional keywords."""

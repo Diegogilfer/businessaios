@@ -109,6 +109,41 @@ class KnowledgeService:
             logger.error(f"Failed to search knowledge: {e}")
             return []
 
+    def get_by_agent(self, agent_role: str, limit: int = 20) -> list[dict]:
+        """Get knowledge entries contributed by a specific agent."""
+        try:
+            db = get_supabase()
+            response = (
+                db.table(self.TABLE)
+                .select("id,title,category,tags,created_at,source_agent")
+                .eq("source_agent", agent_role)
+                .order("created_at", desc=True)
+                .limit(limit)
+                .execute()
+            )
+            return response.data or []
+        except Exception as e:
+            logger.error(f"Failed to get knowledge by agent '{agent_role}': {e}")
+            return []
+
+    def get_stats(self) -> dict:
+        """Per-agent knowledge counts and totals for the memory panel."""
+        agents = ["ceo", "research", "commercial", "content", "finance", "operations"]
+        stats: dict = {"total": 0, "today": 0, "by_agent": {}}
+        try:
+            db = get_supabase()
+            all_rows = db.table(self.TABLE).select("source_agent,created_at").execute()
+            rows = all_rows.data or []
+            today_prefix = datetime.utcnow().date().isoformat()
+            stats["total"] = len(rows)
+            stats["today"] = sum(1 for r in rows if (r.get("created_at") or "").startswith(today_prefix))
+            for ag in agents:
+                count = sum(1 for r in rows if r.get("source_agent") == ag)
+                stats["by_agent"][ag] = count
+        except Exception as e:
+            logger.error(f"Failed to get knowledge stats: {e}")
+        return stats
+
     def get_context_for_agent(
         self, agent_role: str, limit: int = 5
     ) -> str:

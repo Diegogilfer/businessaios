@@ -53,8 +53,12 @@ export const startScan        = (category: string, subcategory?: string) =>
 // ── RAG / Knowledge ─────────────────────────────────────────
 export const semanticSearch = (query: string, limit = 5) =>
   req('/rag/search/semantic', { method: 'POST', body: JSON.stringify({ query, limit }) })
-export const listKnowledge  = (category?: string) =>
+export const listKnowledge      = (category?: string) =>
   req(`/knowledge${category ? `?category=${category}` : ''}`)
+export const getKnowledgeRecent = (limit = 20) => req(`/knowledge/recent?limit=${limit}`)
+export const getKnowledgeByAgent = (role: string, limit = 20) =>
+  req(`/knowledge/agent/${role}?limit=${limit}`)
+export const getKnowledgeStats  = () => req('/knowledge/stats')
 
 // ── Chat ─────────────────────────────────────────────────────
 export const createConversation = (agent_role: string, title = '') =>

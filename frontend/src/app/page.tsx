@@ -11,6 +11,7 @@ import FinanceDashboard from '@/components/dashboards/FinanceDashboard'
 import CeoDashboard from '@/components/dashboards/CeoDashboard'
 import SecurityDashboard from '@/components/security/SecurityDashboard'
 import CreationHub from '@/components/tools/CreationHub'
+import MemoryPanel from '@/components/memory/MemoryPanel'
 
 // ── Category config ───────────────────────────────────────────
 type Cat = 'ecommerce' | 'marketing' | 'finance' | 'ceo' | 'security' | 'tools'
@@ -85,7 +86,7 @@ const CATS: {
 ]
 
 // ── Sidebar ───────────────────────────────────────────────────
-function Sidebar({ cat, setCat, connected }: { cat: Cat; setCat: (c: Cat) => void; connected: boolean }) {
+function Sidebar({ cat, setCat, connected, onMemory }: { cat: Cat; setCat: (c: Cat) => void; connected: boolean; onMemory: () => void }) {
   const [hovered, setHovered] = useState<Cat | null>(null)
   const active = CATS.find(c => c.id === cat)!
 
@@ -175,8 +176,44 @@ function Sidebar({ cat, setCat, connected }: { cat: Cat; setCat: (c: Cat) => voi
         })}
       </nav>
 
+      {/* Memory button */}
+      <button
+        onClick={onMemory}
+        title="Memoria en vivo (M)"
+        aria-label="Abrir panel de memoria"
+        style={{
+          width: 38, height: 38, borderRadius: 9,
+          background: 'rgba(139,92,246,0.1)',
+          border: '1px solid rgba(139,92,246,0.25)',
+          color: '#8B5CF6', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 10, transition: 'var(--transition)',
+          position: 'relative',
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLElement).style.background = 'rgba(139,92,246,0.2)'
+          ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.5)'
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLElement).style.background = 'rgba(139,92,246,0.1)'
+          ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.25)'
+        }}
+      >
+        {/* Live dot */}
+        <div style={{
+          position: 'absolute', top: 5, right: 5,
+          width: 5, height: 5, borderRadius: '50%',
+          background: '#10B981', boxShadow: '0 0 5px #10B981',
+          animation: 'pulse-dot 2.2s ease infinite',
+        }} />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+        </svg>
+      </button>
+
       {/* Connection status */}
-      <div style={{ padding: '12px 0 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      <div style={{ padding: '4px 0 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
         <div style={{
           width: 7, height: 7, borderRadius: '50%',
           background: connected ? '#10B981' : '#EF4444',
@@ -278,22 +315,23 @@ function TopBar({ cat, onCta }: { cat: typeof CATS[0]; onCta: () => void }) {
 // ── Dashboard shell ───────────────────────────────────────────
 function Dashboard({ accessKey }: { accessKey: string }) {
   const [cat, setCat] = useState<Cat>('ecommerce')
+  const [memoryOpen, setMemoryOpen] = useState(false)
   const { connected } = useWebSocket()
   const current = CATS.find(c => c.id === cat)!
 
-  // Keyboard shortcut: 1-6 for category switch
+  // Keyboard shortcuts: 1-6 categories, M = memory panel
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       const idx = parseInt(e.key) - 1
       if (idx >= 0 && idx < CATS.length) setCat(CATS[idx].id)
+      if (e.key.toLowerCase() === 'm') setMemoryOpen(o => !o)
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
   const handleCta = useCallback(() => {
-    // Open companion for context-aware CTA
     const ev = new CustomEvent('baios:open-companion', { detail: { cat } })
     window.dispatchEvent(ev)
   }, [cat])
@@ -301,7 +339,7 @@ function Dashboard({ accessKey }: { accessKey: string }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
       <CompanionModal />
-      <Sidebar cat={cat} setCat={setCat} connected={connected} />
+      <Sidebar cat={cat} setCat={setCat} connected={connected} onMemory={() => setMemoryOpen(true)} />
 
       <main style={{ marginLeft: 72, flex: 1, minHeight: '100vh', position: 'relative', zIndex: 1 }}>
         <TopBar cat={current} onCta={handleCta} />
@@ -321,6 +359,7 @@ function Dashboard({ accessKey }: { accessKey: string }) {
       </main>
 
       <CompanionPanel currentTab={cat} />
+      <MemoryPanel open={memoryOpen} onClose={() => setMemoryOpen(false)} />
     </div>
   )
 }
