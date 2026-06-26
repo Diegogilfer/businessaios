@@ -1,0 +1,33 @@
+# ============================================================
+# BusinessAIOS — CI (Pull Requests)
+# Solo valida. No construye ni despliega.
+# ============================================================
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches-ignore: [main]
+
+jobs:
+
+  # ── Test ────────────────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run health check
+        run: |
+          python -c "from core.config import Settings; s = Settings(); print('Config OK')"

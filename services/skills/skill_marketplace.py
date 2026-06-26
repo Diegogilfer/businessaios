@@ -184,17 +184,18 @@ class SkillMarketplace:
             skills = [s for s in skills if agent_role in s.agent_roles]
         return [
             {
-                "name":        s.name,
-                "title":       s.title,
-                "description": s.description,
-                "category":    s.category,
-                "agent_roles": s.agent_roles,
-                "tags":        s.tags,
-                "installs":    s.installs,
-                "rating":      s.rating,
-                "price":       s.price,
-                "is_premium":  s.is_premium,
-                "version":     s.version,
+                "name":             s.name,
+                "title":            s.title,
+                "description":      s.description,
+                "category":         s.category,
+                "agent_roles":      s.agent_roles,
+                "tags":             s.tags,
+                "installs":         s.installs,
+                "rating":           s.rating,
+                "price":            s.price,
+                "is_premium":       s.is_premium,
+                "version":          s.version,
+                "prompt_template":  s.prompt_template,
             }
             for s in skills
         ]
