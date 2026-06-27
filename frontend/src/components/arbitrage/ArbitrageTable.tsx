@@ -6,7 +6,7 @@ import type { ArbitrageOpportunity } from '@/lib/api'
 import { RISK_COLORS } from '@/lib/constants'
 
 export default function ArbitrageTable() {
-  const fetcher = useCallback(() => getOpportunities(20), [])
+  const fetcher = useCallback(() => getOpportunities(20) as Promise<{ opportunities: ArbitrageOpportunity[] }>, [])
   const { data, loading } = usePoll<{ opportunities: ArbitrageOpportunity[] }>(fetcher, 30000)
   const [filter, setFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all')
   const opps = data?.opportunities ?? []

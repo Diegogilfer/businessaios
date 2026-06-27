@@ -5,6 +5,7 @@
 
 import uuid
 import time
+import asyncio
 from datetime import datetime
 from services.agents.agent_definitions import AGENT_DEFINITIONS
 from services.events.event_bus import event_bus
@@ -112,6 +113,14 @@ class ChatService:
         await self.save_message(conversation_id, "user",      user_message, agent_role)
         await self.save_message(conversation_id, "assistant", response,     agent_role)
 
+        # Propaga cada mensaje a global_knowledge para que TODOS los agentes aprendan
+        asyncio.create_task(self._propagate_to_knowledge(
+            user_message=user_message,
+            agent_response=response,
+            agent_role=agent_role,
+            agent_name=agent.name,
+        ))
+
         event_bus.publish("chat.response", {
             "conversation_id": conversation_id,
             "agent_role": agent_role, "agent_name": agent.name,
@@ -125,6 +134,25 @@ class ChatService:
             "elapsed_seconds": elapsed,
             "timestamp": datetime.utcnow().isoformat(),
         }
+
+    async def _propagate_to_knowledge(
+        self, user_message: str, agent_response: str,
+        agent_role: str, agent_name: str,
+    ) -> None:
+        """Guarda cada intercambio en global_knowledge para aprendizaje circular entre agentes."""
+        try:
+            from services.knowledge.knowledge_service import KnowledgeService
+            ks = KnowledgeService()
+            combined = f"Usuario preguntó: {user_message}\n\n{agent_name} respondió: {agent_response}"
+            ks.save_knowledge(
+                title=f"Chat [{agent_role}]: {user_message[:80]}",
+                content=combined,
+                category="chat_training",
+                source_agent=agent_role,
+                tags=[agent_role, "chat", "training", "circular_knowledge"],
+            )
+        except Exception as e:
+            logger.warning(f"No se pudo propagar a global_knowledge: {e}")
 
     async def delete_conversation(self, conversation_id: str) -> bool:
         try:

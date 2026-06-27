@@ -6,8 +6,12 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 async function req<T>(path: string, opts?: RequestInit): Promise<T> {
+  const key = typeof window !== 'undefined' ? localStorage.getItem('baios_access_key') : null
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (key) headers['Authorization'] = `Bearer ${key}`
+
   const r = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     ...opts,
   })
   if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`)
@@ -32,7 +36,8 @@ export const getAnalyticsKnowledge = () => req('/analytics/knowledge')
 // ── Tasks ────────────────────────────────────────────────────
 export const listTasks  = (status?: string) => req(`/tasks${status ? `?status=${status}` : ''}`)
 export const getTask    = (id: string) => req(`/tasks/${id}`)
-export const createTask = (body: TaskCreate) => req('/tasks', { method: 'POST', body: JSON.stringify(body) })
+export const createTask = (body: TaskCreate) =>
+  req<{ task: Task }>('/tasks/', { method: 'POST', body: JSON.stringify(body) }).then(r => r.task)
 export const executeTask = (task_id: string, use_collaboration = true) =>
   req('/tasks/execute', { method: 'POST', body: JSON.stringify({ task_id, use_collaboration }) })
 
@@ -48,8 +53,42 @@ export const startScan        = (category: string, subcategory?: string) =>
 // ── RAG / Knowledge ─────────────────────────────────────────
 export const semanticSearch = (query: string, limit = 5) =>
   req('/rag/search/semantic', { method: 'POST', body: JSON.stringify({ query, limit }) })
-export const listKnowledge  = (category?: string) =>
+export const listKnowledge      = (category?: string) =>
   req(`/knowledge${category ? `?category=${category}` : ''}`)
+export const getKnowledgeRecent = (limit = 20) => req(`/knowledge/recent?limit=${limit}`)
+export const getKnowledgeByAgent = (role: string, limit = 20) =>
+  req(`/knowledge/agent/${role}?limit=${limit}`)
+export const getKnowledgeStats  = () => req('/knowledge/stats')
+
+// ── Chat ─────────────────────────────────────────────────────
+export const createConversation = (agent_role: string, title = '') =>
+  req<{ conversation_id: string }>('/chat/conversations', {
+    method: 'POST', body: JSON.stringify({ agent_role, title })
+  })
+export const sendChatMessage = (conversation_id: string, agent_role: string, message: string) =>
+  req<{ response: string }>('/chat/message', {
+    method: 'POST', body: JSON.stringify({ conversation_id, agent_role, message })
+  })
+
+// ── Skills Marketplace ───────────────────────────────────────
+export const getSkillsCatalog   = (category?: string, agentRole?: string) => {
+  const p = new URLSearchParams()
+  if (category)  p.set('category', category)
+  if (agentRole) p.set('agent_role', agentRole)
+  return req(`/skills/catalog${p.toString() ? `?${p}` : ''}`)
+}
+export const getInstalledSkills = () => req('/skills/installed')
+export const installSkill       = (skill_name: string) =>
+  req('/skills/install', { method: 'POST', body: JSON.stringify({ skill_name }) })
+export const uninstallSkill     = (skill_name: string) =>
+  req(`/skills/install/${skill_name}`, { method: 'DELETE' })
+export const executeSkill       = (skill_name: string, params: Record<string, string>) =>
+  req('/skills/execute', { method: 'POST', body: JSON.stringify({ skill_name, params }) })
+export const saveUserPrompt     = (title: string, content: string) =>
+  req('/knowledge/', { method: 'POST', body: JSON.stringify({
+    title, content, category: 'user_prompt',
+    source_agent: null, tags: ['user', 'prompt', 'business_context'],
+  })})
 
 // ── Security ─────────────────────────────────────────────────
 export const getSecurityStatus = () => req('/security/status')

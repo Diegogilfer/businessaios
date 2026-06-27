@@ -29,6 +29,9 @@ class AutoLearningLoop:
     def __init__(self):
         self._llm = None
         self._db  = None
+        self.MIN_QUALITY   = 0.60   # Por debajo de esto → analizar
+        self.MIN_SAMPLES   = 3      # Mínimo de muestras para aprender
+        self.AUTO_APPLY_TH = 0.85   # Confianza mínima para aplicar auto
 
     @property
     def llm(self):
@@ -46,9 +49,6 @@ class AutoLearningLoop:
             except Exception:
                 pass
         return self._db
-        self.MIN_QUALITY   = 0.60   # Por debajo de esto → analizar
-        self.MIN_SAMPLES   = 3      # Mínimo de muestras para aprender
-        self.AUTO_APPLY_TH = 0.85   # Confianza mínima para aplicar auto
 
     async def run_cycle(self, auto_apply: bool = False) -> dict:
         """

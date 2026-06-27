@@ -65,6 +65,25 @@ async def get_insights(category: str):
     return insights
 
 
+@router.get("/opportunities", summary="Get latest arbitrage opportunities from DB")
+async def get_opportunities(limit: int = 20):
+    """Return the most recent arbitrage results stored in Supabase."""
+    try:
+        from core.database import get_supabase
+        db = get_supabase()
+        resp = (
+            db.table("arbitrage_opportunities")
+            .select("*")
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return {"opportunities": resp.data or []}
+    except Exception as e:
+        logger.warning(f"arbitrage_results query failed: {e}")
+        return {"opportunities": []}
+
+
 @router.get("/status", summary="Arbitrage system status")
 async def arbitrage_status():
     """Check if arbitrage APIs are configured."""
